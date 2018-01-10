@@ -1,0 +1,204 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+
+
+<h1><i style="color:red">Data Table with Pagination in React JS</i></h1>
+<hr />
+@* HTML *@
+<div class="container" id="griddata">
+</div>
+
+@* CSS *@
+
+<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    @* Jquery *@
+<script src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+
+@* ReactJS library *@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.6/react.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.6/react-dom.js"></script>
+
+@* JSX Parser *@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+
+@* ReactJS component *@
+
+<script type="text/babel">
+    @* Here we will create React component *@
+
+    @* New : Search box component *@
+    var SearchBox = React.createClass({
+    handleChange : function(e){
+    console.log('search');
+    this.props.onSearchChanged(e.target.value);
+    },
+    render: function(){
+    return (
+    <div style={{marginBottom:15+'px',float:'left'}}><input className="form-control" type="text" value={this.props.searchText} placeholder="search" onChange={this.handleChange} /></div>
+    )
+    }
+    });
+    @* 1. Paging component *@
+    var GridPager = React.createClass({
+    render : function(){
+    var li = [];
+    var pageCount = this.props.Size;
+    for(var i = 1; i <=pageCount; i++){
+    if(this.props.currentPage == i){
+    li.push(
+    <li key={i} className="active"><a href="#">{i}</a></li>);
+    }
+    else{
+    li.push(
+    <li key={i}><a href="#" onClick={this.props.onPageChanged.bind(null,i)}>{i}</a></li>);
+    }
+    }
+    return (
+    <ul className="pagination">{li}</ul>);
+    }
+    });
+
+
+    @* 2. Table row component *@
+    var EmployeeGridRow = React.createClass({
+    render : function(){
+    return (
+    <tr>
+        <td >{this.props.item.EmployeeName}</td>
+        <td >{this.props.item.PHONE_NUMBER}</td>
+        <td >{this.props.item.EMAIL}</td>
+        <td >{this.props.item.COUNTRY}</td>
+        <td >{this.props.item.CITY}</td>
+        <td > <i style={{color:"blue"}} className="fa fa-edit"></i> | <i style={{color:"red"}} className="fa fa-trash-o" aria-hidden="true"></i>
+ </td>
+    </tr>
+    );
+    }
+    });
+    @* 3. Table component *@
+    var EmployeeGridTable = React.createClass({
+    getInitialState : function(){
+    return {
+    Data : {
+    List : [],
+    totalPage : 0,
+    sortColumnName : null,
+    sortOrder : null,
+    currentPage : 1,
+    pageSize : 3,
+    searchText:''
+    }
+    }
+    },
+    componentDidMount : function(){
+    this.populateData();
+    },
+    @* function for populate data *@
+    populateData: function(){
+    var params = {
+    pageSize : this.state.Data.pageSize,
+    currentPage : this.state.Data.currentPage,
+    searchText : this.state.Data.searchText
+    }
+    if(this.state.Data.sortColumnName){
+    params.sortColumnName = this.state.Data.sortColumnName;
+    }
+    if(this.state.Data.sortOrder){
+    params.sortOrder = this.state.Data.sortOrder;
+    }
+
+    $.ajax({
+    url : this.props.dataUrl,
+    type : 'GET',
+    data : params,
+    success : function(data){
+    if(this.isMounted()){
+    this.setState({
+    Data : data
+    });
+    }
+    }.bind(this),
+    error: function(err){
+    alert('Error');
+    }.bind(this)
+    });
+    },
+    @* function for pagination *@
+    pageChanged:function(pageNumber,e){
+    e.preventDefault();
+    this.state.Data.currentPage = pageNumber;
+    this.populateData();
+    },
+    @* function for sorting *@
+    sortChanged : function(sortColumnName, order , e){
+    e.preventDefault();
+    this.state.Data.sortColumnName = sortColumnName;
+    this.state.Data.currentPage = 1;
+    this.state.Data.sortOrder = order.toString().toLowerCase() == 'asc' ? 'desc':'asc';
+    this.populateData();
+    },
+    searchChange : function(value){
+    var d = this.state.Data;
+    d.searchText = value;
+    this.setState({
+    Data : d
+    });
+    this.populateData();
+    },
+    @* function for set sort icon on table header *@
+    _sortClass : function(filterName){
+    return "fa fa-fw " + ((filterName == this.state.Data.sortColumnName) ? ("fa-sort-" + this.state.Data.sortOrder) : "fa-sort");
+    },
+    @* render *@
+    render : function(){
+    var rows = [];
+    this.state.Data.List.forEach(function(item){
+    rows.push(
+    <EmployeeGridRow key={item.EmployeeID} item={item} />);
+    });
+    return (
+    <div>
+        <SearchBox className="form-control" onSearchChanged={this.searchChange} searchText={this.state.Data.searchText} />
+        <div class="row">
+        <div class="col-sm-12">
+            <table className="table table-inverse table-hover table-bordered table-responsive table-condensed table-striped">
+                <thead>
+                    <tr className="success">
+                        <th onClick={this.sortChanged.bind(this,'EmployeeName',this.state.Data.sortOrder)}>
+                            Employee Name
+                            <i className={this._sortClass('EmployeeName')}></i>
+                        </th>
+                        <th onClick={this.sortChanged.bind(this,'PHONE_NUMBER',this.state.Data.sortOrder)}>
+                            Contact Number
+                            <i className={this._sortClass('PHONE_NUMBER')}></i>
+                        </th>
+                        <th onClick={this.sortChanged.bind(this,'EMAIL',this.state.Data.sortOrder)}>
+                            Email ID
+                            <i className={this._sortClass('EMAIL')}></i>
+                        </th>
+                        <th onClick={this.sortChanged.bind(this,'COUNTRY',this.state.Data.sortOrder)}>
+                            Country
+                            <i className={this._sortClass('COUNTRY')}></i>
+                        </th>
+                        <th onClick={this.sortChanged.bind(this,'CITY',this.state.Data.sortOrder)}>
+                            City
+                            <i className={this._sortClass('CITY')}></i>
+                        </th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody className="info">{rows}</tbody>
+            </table>
+        </div>
+        </div>
+        Pagination : 
+       <GridPager Size={this.state.Data.totalPage} onPageChanged={this.pageChanged} currentPage={this.state.Data.currentPage} />
+    </div>
+    );
+    }
+    });
+    ReactDOM.render(
+    <EmployeeGridTable dataUrl="/home/getEmployeeList" />, document.getElementById('griddata'));
+</script>
